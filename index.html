@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Building Permit Portal</title>
+	<style>
+		body { 
+            font-family: Arial, sans-serif; 
+            margin: 2em; 
+            background: #111;
+            color: #eee;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+		label { 
+            font-weight: bold; 
+            margin-bottom: 1em;
+        }
+
+		#links { 
+            margin-top: 1em; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+        }
+
+		.link-block { 
+            margin: 0.75em 0;
+        }
+
+        input, datalist {
+            font-size: 1em;
+            padding: 0.5em;
+            border-radius: 4px;
+            border: none;
+            background: #1a1a1a;
+            color: #eee;
+            width: 300px;
+            outline: none;
+            box-shadow: 0 0 0 1px #333;
+            transition: box-shadow 0.3s cubic-bezier(.17,.67,.39,1.81);
+        }
+
+        input:focus, datalist:focus {
+            box-shadow: 0 0 0 3px #0265d5;
+        }
+
+        a {
+            background-color: #0265d5;
+            color: #fff;
+            padding: 0.5em 1em;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        a:hover {
+            background-color: #0254b3;
+        }
+	</style>
+</head>
+<body>
+	<h1>Building Permit Portal</h1>
+	<label for="municipality">Select Municipality:</label>
+	<input list="municipalities" id="municipality" name="municipality" autocomplete="off">
+	<datalist id="municipalities"></datalist>
+	<div id="links"></div>
+	<script>
+	// Helper to parse CSV (simple, no quoted commas)
+	function parseCSV(text) {
+		const lines = text.trim().split(/\r?\n/);
+		const headers = lines[0].replace(/^"|"$/g, '').split(/","/);
+		return lines.slice(1).map(line => {
+			const cols = line.replace(/^"|"$/g, '').split(/","/);
+			const obj = {};
+			headers.forEach((h, i) => obj[h] = cols[i] || '');
+			return obj;
+		});
+	}
+
+	// Load CSV and populate datalist
+	fetch('database.csv')
+		.then(r => r.text())
+		.then(csv => {
+			const data = parseCSV(csv);
+			const datalist = document.getElementById('municipalities');
+			data.forEach(row => {
+				const opt = document.createElement('option');
+				opt.value = row['Municipality'];
+				datalist.appendChild(opt);
+			});
+			// Store data for lookup
+			window._permitData = data;
+		});
+
+	document.getElementById('municipality').addEventListener('input', function() {
+		const val = this.value.trim();
+		const data = window._permitData || [];
+		const row = data.find(r => r['Municipality'] === val);
+		const linksDiv = document.getElementById('links');
+		linksDiv.innerHTML = '';
+		if (row) {
+			if (row['Portal']) {
+				linksDiv.innerHTML += `<div class="link-block"><a href="${row['Portal']}" target="_blank">Portal</a></div>`;
+			}
+			if (row['Info']) {
+				linksDiv.innerHTML += `<div class="link-block"><a href="${row['Info']}" target="_blank">Info</a></div>`;
+			}
+			if (!row['Portal'] && !row['Info']) {
+				linksDiv.textContent = 'No links available.';
+			}
+		}
+	});
+	</script>
+</body>
+</html>
